@@ -41,7 +41,7 @@ namespace Cassandra.Tests.Mapping.Linq
             object[] values;
             var cql = cqlInsert.GetCqlAndValues(out values);
 
-            Assert.AreEqual("INSERT INTO InsertNullTable (Key, Value) VALUES (?, ?)", cql);
+            TestHelper.VerifyInsertCqlColumns("InsertNullTable", cql, new[] {"Key", "Value"});
             Assert.AreEqual(2, values.Length);
             Assert.AreEqual(row.Key, values[0]);
             Assert.AreEqual(row.Value, values[1]);
@@ -58,6 +58,7 @@ namespace Cassandra.Tests.Mapping.Linq
             var cql = cqlInsert.GetCqlAndValues(out values);
 
             Assert.AreEqual("INSERT INTO InsertNullTable (Key) VALUES (?)", cql);
+            TestHelper.VerifyInsertCqlColumns("InsertNullTable", cql, new[] {"Key"});
             Assert.AreEqual(1, values.Length);
             Assert.AreEqual(row.Key, values[0]);
         }
@@ -72,7 +73,7 @@ namespace Cassandra.Tests.Mapping.Linq
             object[] values;
             var cql = cqlInsert.GetCqlAndValues(out values);
 
-            Assert.AreEqual("INSERT INTO ks100.tbl1 (Key) VALUES (?)", cql);
+            TestHelper.VerifyInsertCqlColumns("ks100.tbl1", cql, new[] {"Key"});
             Assert.AreEqual(1, values.Length);
             Assert.AreEqual(102, values[0]);
         }
@@ -87,7 +88,7 @@ namespace Cassandra.Tests.Mapping.Linq
             object[] values;
             var cql = cqlInsert.GetCqlAndValues(out values);
 
-            Assert.AreEqual("INSERT INTO tbl1 (Key) VALUES (?)", cql);
+            TestHelper.VerifyInsertCqlColumns("tbl1", cql, new[] {"Key"});
             Assert.AreEqual(1, values.Length);
             Assert.AreEqual(110, values[0]);
         }
@@ -120,7 +121,7 @@ namespace Cassandra.Tests.Mapping.Linq
             object[] values;
             var cql = cqlInsert.GetCqlAndValues(out values);
 
-            Assert.AreEqual("INSERT INTO InsertNullTable (Key, Value) VALUES (?, ?) IF NOT EXISTS USING TTL ? AND TIMESTAMP ?", cql);
+            TestHelper.VerifyInsertCqlColumns("InsertNullTable", cql, new[] {"Key", "Value"}, "IF NOT EXISTS USING TTL ? AND TIMESTAMP ?");
             Assert.AreEqual(4, values.Length);
             Assert.AreEqual(103, values[0]);
             Assert.AreEqual(null, values[1]);
@@ -141,7 +142,7 @@ namespace Cassandra.Tests.Mapping.Linq
             object[] values;
             var cql = cqlInsert.GetCqlAndValues(out values);
 
-            Assert.AreEqual("INSERT INTO InsertNullTable (Key) VALUES (?) IF NOT EXISTS USING TIMESTAMP ?", cql);
+            TestHelper.VerifyInsertCqlColumns("InsertNullTable", cql, new[] {"Key"}, "IF NOT EXISTS USING TIMESTAMP ?");
             Assert.AreEqual(2, values.Length);
             Assert.AreEqual(104, values[0]);
             Assert.AreEqual((timestamp - new DateTimeOffset(1970, 1, 1, 0, 0, 0, 0, TimeSpan.Zero)).Ticks / 10, values[1]);
@@ -171,9 +172,7 @@ namespace Cassandra.Tests.Mapping.Linq
                 .IfNotExists()
                 .SetTTL(ttl)
                 .Execute();
-            Assert.AreEqual(
-                "INSERT INTO Song (Id, Title, Artist, ReleaseDate) VALUES (?, ?, ?, ?) IF NOT EXISTS USING TTL ?",
-                query);
+            TestHelper.VerifyInsertCqlColumns("Song", query, new[] {"Title", "Id", "Artist", "ReleaseDate"}, "IF NOT EXISTS USING TTL ?");
             Assert.AreEqual(new object[] { song.Id, song.Title, song.Artist, song.ReleaseDate, ttl }, parameters);
         }
     }

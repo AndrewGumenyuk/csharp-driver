@@ -8,6 +8,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Serialization;
@@ -436,6 +437,71 @@ namespace Cassandra.Tests
             }, TaskContinuationOptions.ExecuteSynchronously);
         }
 
+        internal static void VerifyCqlColumns(Regex updateSetColumnsRegex, Regex updateWhereColumnsRegex, 
+                                              string query, string[] setColumns, string[] whereColumns)
+        {
+            var matchSetColumnsMatch = updateSetColumnsRegex.Match(query);
+            Assert.IsTrue(matchSetColumnsMatch.Success);
+            Assert.GreaterOrEqual(matchSetColumnsMatch.Groups.Count, 2);
+            var setColumnsGroup = matchSetColumnsMatch.Groups[1].Value;
+            foreach (var setColumn in setColumns)
+            {
+                Assert.IsTrue(setColumnsGroup.Contains(setColumn));
+            }
+
+            var matchWhereColumnsMatch = updateWhereColumnsRegex.Match(query);
+            Assert.IsTrue(matchWhereColumnsMatch.Success);
+            Assert.GreaterOrEqual(matchWhereColumnsMatch.Groups.Count, 2);
+            var whereColumnsGroup = matchWhereColumnsMatch.Groups[1].Value;
+            foreach (var whereColumn in whereColumns)
+            {
+                Assert.IsTrue(whereColumnsGroup.Contains(whereColumn));
+            }
+        }
+
+        internal static void VerifyUpdateCqlColumns(string tableName, string query, string[] setColumns, string[] whereColumns, string complement = null)
+        {
+            var updateSetColumnsRegex = new Regex($"UPDATE {tableName} SET (.* = (\\?|(.*\\s?\\-\\s\\?))\\,?)+ WHERE .*");
+            var updateWhereColumnsRegex = new Regex($"UPDATE {tableName} SET .* WHERE ((.* [=\\>\\<] \\?)\\s?(AND)?)+\\s*{complement}");
+            VerifyCqlColumns(updateSetColumnsRegex, updateWhereColumnsRegex, query, setColumns, whereColumns);
+        }
+        
+        internal static void VerifyInsertCqlColumns(string tableName, string query, string[] columns, 
+                                                    string complement = null)
+        {
+            var insertColumnsRegex = new Regex($"INSERT INTO {tableName} \\((.*)\\) VALUES \\((.*)\\)\\s?(.*)");
+            var matchInsertColumnsMatch = insertColumnsRegex.Match(query);
+            Assert.IsTrue(matchInsertColumnsMatch.Success);
+            Assert.GreaterOrEqual(matchInsertColumnsMatch.Groups.Count, 3);
+            var insertColumnsGroup = matchInsertColumnsMatch.Groups[1].Value;
+            foreach (var column in columns)
+            {
+                Assert.IsTrue(insertColumnsGroup.Contains(column));
+            }
+            Assert.AreEqual(columns.Length, matchInsertColumnsMatch.Groups[2].Value.Count(c => c == '?'));
+            if (complement == null) return;
+            Assert.AreEqual(4, matchInsertColumnsMatch.Groups.Count);
+            Assert.AreEqual(complement, matchInsertColumnsMatch.Groups[3].Value);
+        }
+        
+        internal static void VerifySelectCqlColumns(string tableName, string query, string[] columns, 
+                                                    string complement = null)
+        {
+            var insertColumnsRegex = new Regex($"INSERT INTO {tableName} \\((.*)\\) VALUES \\((.*)\\)\\s?(.*)");
+            var matchInsertColumnsMatch = insertColumnsRegex.Match(query);
+            Assert.IsTrue(matchInsertColumnsMatch.Success);
+            Assert.GreaterOrEqual(matchInsertColumnsMatch.Groups.Count, 3);
+            var insertColumnsGroup = matchInsertColumnsMatch.Groups[1].Value;
+            foreach (var column in columns)
+            {
+                Assert.IsTrue(insertColumnsGroup.Contains(column));
+            }
+            Assert.AreEqual(columns.Length, matchInsertColumnsMatch.Groups[2].Value.Count(c => c == '?'));
+            if (complement == null) return;
+            Assert.AreEqual(4, matchInsertColumnsMatch.Groups.Count);
+            Assert.AreEqual(complement, matchInsertColumnsMatch.Groups[3].Value);
+        }
+        
         private class SendReceiveCounter
         {
             private int _receiveCounter;
