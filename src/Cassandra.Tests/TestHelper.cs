@@ -484,24 +484,6 @@ namespace Cassandra.Tests
             Assert.AreEqual(complement, matchInsertColumnsMatch.Groups[3].Value);
         }
         
-        internal static void VerifySelectCqlColumns(string tableName, string query, string[] columns, 
-                                                    string complement = null)
-        {
-            var insertColumnsRegex = new Regex($"INSERT INTO {tableName} \\((.*)\\) VALUES \\((.*)\\)\\s?(.*)");
-            var matchInsertColumnsMatch = insertColumnsRegex.Match(query);
-            Assert.IsTrue(matchInsertColumnsMatch.Success);
-            Assert.GreaterOrEqual(matchInsertColumnsMatch.Groups.Count, 3);
-            var insertColumnsGroup = matchInsertColumnsMatch.Groups[1].Value;
-            foreach (var column in columns)
-            {
-                Assert.IsTrue(insertColumnsGroup.Contains(column));
-            }
-            Assert.AreEqual(columns.Length, matchInsertColumnsMatch.Groups[2].Value.Count(c => c == '?'));
-            if (complement == null) return;
-            Assert.AreEqual(4, matchInsertColumnsMatch.Groups.Count);
-            Assert.AreEqual(complement, matchInsertColumnsMatch.Groups[3].Value);
-        }
-        
         private class SendReceiveCounter
         {
             private int _receiveCounter;
